@@ -6,6 +6,8 @@
 #include <filesystem>
 #include "grepper.h"
 #include <fstream>
+#include <list>
+
 using namespace std::filesystem;
 
 using namespace std;
@@ -13,6 +15,9 @@ using namespace std;
 int count_files = 0;
 int count_found = 0;
 int bad_files = 0;
+
+list<basic_string<char>> excludedDirectories;
+int firstCharToSearch;
 basic_string<char> stringToSearch;
 
 void visit(path p)
@@ -26,12 +31,10 @@ void visit(path p)
 		{
 			// Dump the contents of the file to cout.
 			//cout << ifs.rdbuf();
-			int i;
 			while (!ifs.eof())
 			{
-				int c = ifs.get();
 
-				if (c == stringToSearch[0])
+				if (ifs.get() == firstCharToSearch)
 				{
 					size_t i = 1;
 					for ( ; i < stringToSearch.length(); i++)
@@ -67,20 +70,43 @@ int main(int argc, char* argv[])
 	for (size_t i = 0; i < argc; i++)
 	{
 		basic_string <char> p(argv[i]);
+
 		std::cout << p << "\n";
+		
 		if (p.starts_with("--search-in="))
 			pathToSearch = p.erase(0, 12);
-		if (i == argc - 1)
+		if (p.starts_with("--exclude-dir="))
+		{
+			basic_string <char> e (p.erase(0, 14));
+			excludedDirectories.push_back(e);
+		}
+
+		if (i == static_cast<unsigned long long>(argc) - 1)
+		{
 			stringToSearch = p;
+			firstCharToSearch = stringToSearch[0];
+		}
 	}
 
 	std::cout << "Search in " << pathToSearch << "\n";
 
+	for (auto e : excludedDirectories)
+		std::cout << "Excluding " << e << "\n";
+
 	for (recursive_directory_iterator next(pathToSearch), end; next != end; ++next)
 	{
 		path p = next->path();
-		if (p.string().find(".git") == string::npos)
-			visit(p);
+		bool exclude = false;
+		for (auto e : excludedDirectories)
+			if (p.string().find(e) != string::npos)
+			{
+				exclude = true;
+				break;
+			}
+		
+		if (exclude) continue;
+
+		visit(p);
 	}
 
 	std::cout << "Found " << count_found << " files\n";
