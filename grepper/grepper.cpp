@@ -5,13 +5,57 @@
 #include <string>
 #include <filesystem>
 #include "grepper.h"
+#include <fstream>
 using namespace std::filesystem;
 
 using namespace std;
 
+int count_files = 0;
+int count_found = 0;
+int bad_files = 0;
+basic_string<char> stringToSearch;
+
 void visit(path p)
 {
-	std::cout << "in " << p << "\n";
+	if (is_regular_file(p))
+	{
+		//std::cout << "in " << p << "\n";
+		count_files++;
+		ifstream ifs(p, ios_base::in, _SH_DENYNO);
+		if (!ifs.bad())
+		{
+			// Dump the contents of the file to cout.
+			//cout << ifs.rdbuf();
+			int i;
+			while (!ifs.eof())
+			{
+				int c = ifs.get();
+
+				if (c == stringToSearch[0])
+				{
+					size_t i = 1;
+					for ( ; i < stringToSearch.length(); i++)
+					{
+						if (ifs.get() != stringToSearch[i])
+							break;
+
+					}
+					if (i == stringToSearch.length())
+					{
+						count_found++;
+						cout << p <<"\n";
+						break;
+					}
+				}
+			}
+
+			ifs.close();
+		} else 
+		{
+			bad_files++;
+		}
+
+	}
 }
 
 //"C:\\Users\\gnils\\Documents\\_MyProj\\My LV Projects 2021\\find all vi references\\grep.exe" -rlwa --exclude-dir=.git	 --exclude-dir=.vs 'GetProcess or ThreadTimes.vi' 
@@ -26,7 +70,8 @@ int main(int argc, char* argv[])
 		std::cout << p << "\n";
 		if (p.starts_with("--search-in="))
 			pathToSearch = p.erase(0, 12);
-
+		if (i == argc - 1)
+			stringToSearch = p;
 	}
 
 	std::cout << "Search in " << pathToSearch << "\n";
@@ -37,6 +82,11 @@ int main(int argc, char* argv[])
 		if (p.string().find(".git") == string::npos)
 			visit(p);
 	}
+
+	std::cout << "Found " << count_found << " files\n";
+	std::cout << "Searched in " << count_files << " files\n";
+	std::cout << "            " << bad_files << " bad files\n";
+
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu
