@@ -21,7 +21,7 @@ void visit(path p)
 	{
 		//std::cout << "in " << p << "\n";
 		count_files++;
-		ifstream ifs(p, ios_base::in, _SH_DENYNO);
+		ifstream ifs(p, ios_base::in|ios_base::binary, _SH_DENYNO);
 		if (!ifs.bad())
 		{
 			// Dump the contents of the file to cout.
