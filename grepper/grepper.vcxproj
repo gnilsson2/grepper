@@ -139,9 +139,6 @@
   <ItemGroup>
     <ClCompile Include="grepper.cpp" />
   </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="grepper.h" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

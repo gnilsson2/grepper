@@ -4,7 +4,6 @@
 #include <iostream>
 #include <string>
 #include <filesystem>
-#include "grepper.h"
 #include <list>
 #include <functional>
 #include <windows.h>
@@ -31,11 +30,12 @@ std::function<int(int)> cased = [](int x) {
 	return x;
 	};
 
-int numThreads = 0;
+volatile long numThreads = 0;
 
 DWORD WINAPI process(LPVOID lpParam)
-//void process(LPCWSTR s)
 {
+	InterlockedIncrement(&numThreads);
+
 	HANDLE hFile;
 	hFile = CreateFile((LPCWSTR)lpParam,                // file to open
 		GENERIC_READ,           // open for reading
@@ -50,33 +50,44 @@ DWORD WINAPI process(LPVOID lpParam)
 		bad_files++;
 		CloseHandle(hFile);
 		LocalFree(lpParam);
-		numThreads--;
+		InterlockedDecrement(&numThreads);
 		return 1;
 	}
 
-	do
+	HANDLE fileMap = CreateFileMapping(hFile, NULL, PAGE_READONLY, 0, 0, NULL);
+	if (fileMap == NULL)
 	{
-		char c=0;
-		DWORD nBytesRead;
-		BOOL bResult = ReadFile(hFile, &c, 1, &nBytesRead, NULL);
+		bad_files++;
+		CloseHandle(hFile);
+		LocalFree(lpParam);
+		InterlockedDecrement(&numThreads);
+		return 1;
+	}
 
-		// Check for eof.
-		if (bResult && nBytesRead == 0)
-		{
-			break;
-		}
-		if (cased(c) == firstCharToSearch)
+	LPVOID map = MapViewOfFile(fileMap, FILE_MAP_READ, 0, 0, 0);
+	if (map == NULL)
+	{
+		bad_files++;
+		CloseHandle(fileMap);
+		CloseHandle(hFile);
+		LocalFree(lpParam);
+		InterlockedDecrement(&numThreads);
+		return 1;
+	}
+
+	char* c = (char*)map;
+	long long size;
+	GetFileSizeEx(hFile,(PLARGE_INTEGER) & size);
+	char* end = c + size;
+	while (c < end)
+	{
+		if (cased(*c++) == firstCharToSearch)
 		{
 			size_t i = 1;
 			for (; i < stringToSearch.length(); i++)
 			{
-				bResult = ReadFile(hFile, &c, 1, &nBytesRead, NULL);
-				// Check for eof.
-				if (bResult && nBytesRead == 0)
-				{
-					break;
-				}				
-				if (cased(c) != stringToSearch[i]) break;
+				if (c >= end) break;
+				if (cased(*c++) != stringToSearch[i]) break;
 			}
 
 			if (i == stringToSearch.length())
@@ -88,19 +99,18 @@ DWORD WINAPI process(LPVOID lpParam)
 			}
 		}
 
-	} while (true);
-
+	};
+	UnmapViewOfFile(map);
+	CloseHandle(fileMap);
 	CloseHandle(hFile);
 	LocalFree(lpParam);
-	numThreads--;
+	InterlockedDecrement(&numThreads);
 	return 0;
 }
 
 void visit(path p)
 {
-	//std::cout << "in " << p << "\n";
 	count_files++;
-	//process(p.string());
 
 	wchar_t* s = (wchar_t*)p.c_str();
 	wchar_t* pData = (LPWSTR)LocalAlloc(LPTR, 2*wcslen(s)+2);
@@ -120,6 +130,7 @@ void visit(path p)
 		pData[i] = s[i];
 	}
 	pData[i] = 0;
+
 	// Create the thread to begin execution on its own.
 	DWORD dwThreadId;
 	HANDLE hThread = CreateThread(
@@ -140,8 +151,7 @@ void visit(path p)
 		//ErrorHandler(TEXT("CreateThread"));
 		ExitProcess(3);
 	}
-	numThreads++;
-	//WaitForSingleObject(hThread, INFINITE);
+	//WaitForSingleObject(hThread, INFINITE); //debug
 	CloseHandle(hThread);
 }
 
@@ -155,8 +165,9 @@ void usage()
 	std::cout << "  grepper --exclude-dir =.git --exclude-dir =.vs --search-in=\"C:\\Users\\gnils\\Documents\\_MyProj\" \"My vi.vi\"\n";
 
 }
-//"C:\\Users\\gnils\\Documents\\_MyProj\\My LV Projects 2021\\find all vi references\\grep.exe" -rlwa --exclude-dir=.git	 --exclude-dir=.vs 'GetProcess or ThreadTimes.vi' 
-// -rlwa --exclude-dir=.git --exclude-dir=.vs --search-in="C:\Users\gnils\Documents\_MyProj" "GetProcess or ThreadTimes.vi" 
+
+// -i -v --exclude-dir=.git --exclude-dir=.vs --search-in="C:\Users\gnils\Documents\_MyProj" "GetProcess or ThreadTimes.vi"
+
 int main(int argc, char* argv[])
 {
 	bool verbose = false;
@@ -168,13 +179,10 @@ int main(int argc, char* argv[])
 		usage();
 		return 1;
 	}
-	//std::cout << "argc=" << argc << "\n";
 	for (size_t i = 0; i < argc; i++)
 	{
 		basic_string <char> p(argv[i]);
 
-		//std::cout << p << "\n";
-		
 		if (p.compare("-h") == 0)
 		{
 			usage();
@@ -208,7 +216,6 @@ int main(int argc, char* argv[])
 		usage();
 		return 1;
 	}
-
 
 	if (verbose) std::cout << "Search in " << pathToSearch << "\n";
 	if (verbose) std::cout << "Search for " << stringToSearch << "\n";
@@ -246,6 +253,7 @@ int main(int argc, char* argv[])
 	{
 		Sleep(100);
 	}
+
 	if (verbose) std::cout << "Found " << count_found << " files\n";
 	if (verbose) std::cout << "Searched in " << count_files << " files\n";
 	if (verbose) std::cout << "            " << bad_files << " bad files\n";
