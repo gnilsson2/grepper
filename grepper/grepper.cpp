@@ -1,7 +1,6 @@
 // grepper.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
-#include <thread>
 #include <iostream>
 #include <string>
 #include <filesystem>
@@ -24,39 +23,33 @@ list<basic_string<char>> excludedDirectories;
 int firstCharToSearch;
 basic_string<char> stringToSearch;
 
-allocator<char> myAllocator;
 
-void process(char* s)
+std::function<int(int)> cased = [](int x) {
+	if (ignoreCase) return tolower(x);
+	return x;
+	};
+
+void process(string s)
 {
-	path p(s);
-	//myAllocator.deallocate(s, strlen(s));
-	ifstream ifs(p, ios_base::in | ios_base::binary, _SH_DENYNO);
+	ifstream ifs(s, ios_base::in | ios_base::binary, _SH_DENYNO);
 
-	std::function<int(int)> cased = [](int x) {
-		if (ignoreCase) return tolower(x);
-		return x;
-		};
-
-	if (!ifs.bad())
+	if (ifs.good())
 	{
-		// Dump the contents of the file to cout.
-		//cout << ifs.rdbuf();
 		while (!ifs.eof())
 		{
-
 			if (cased(ifs.get()) == firstCharToSearch)
 			{
 				size_t i = 1;
 				for (; i < stringToSearch.length(); i++)
 				{
-					if (cased(ifs.get()) != stringToSearch[i])
-						break;
-
+					if (cased(ifs.get()) != stringToSearch[i]) break;
+					if (ifs.eof()) break;
 				}
+
 				if (i == stringToSearch.length())
 				{
 					count_found++;
-					cout << p.generic_string() << "\n";
+					cout << s << "\n";
 					break;
 				}
 			}
@@ -68,26 +61,13 @@ void process(char* s)
 	{
 		bad_files++;
 	}
-
-
 }
+
 void visit(path p)
 {
-	if (is_regular_file(p))
-	{
-		//std::cout << "in " << p << "\n";
-		count_files++;
-
-		std::u8string path_string{ p.u8string() };
-		char* str = myAllocator.allocate(path_string.length()+1);
-		for (size_t i = 0; i < path_string.length(); i++)
-		{
-			str[i] = path_string[i];
-		}
-		str[path_string.length()] = 0;
-		std::jthread t{ process, str };
-		t.detach();
-	}
+	//std::cout << "in " << p << "\n";
+	count_files++;
+	process(p.string());
 }
 
 void usage()
@@ -107,7 +87,6 @@ int main(int argc, char* argv[])
 	bool verbose = false;
 
 	path pathToSearch;
-
 
 	if (argc < 3)
 	{
@@ -157,6 +136,7 @@ int main(int argc, char* argv[])
 
 
 	if (verbose) std::cout << "Search in " << pathToSearch << "\n";
+	if (verbose) std::cout << "Search for " << stringToSearch << "\n";
 
 	if (verbose) for (auto e : excludedDirectories)
 		std::cout << "Excluding " << e << "\n";
