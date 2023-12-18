@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- <!DOCTYPE IntelParallelAdvisorSummaryCollection SYSTEM  "IntelParallelAdvisorSummaryCollection.dtd"> -->
+
+<IntelParallelAdvisorSummary version="" 
+                             kind="DATAKIND_SURVEY_EX" >
+  <hotspot filename="C:\Users\gnils\source\repos\grepper\grepper\grepper.cpp"
+           line_no="57"
+           routine="process"
+           is_vectorized="0"
+           self_time="0.000000E+00"
+           total_time="4.092867E+01"
+           trip_counts=""
+           func_instance="7"
+           priority="0"/>
+  <hotspot filename="C:\Users\gnils\source\repos\grepper\grepper\grepper.cpp"
+           line_no="223"
+           routine="main"
+           is_vectorized="0"
+           self_time="0.000000E+00"
+           total_time="9.362470E-01"
+           trip_counts=""
+           func_instance="17"
+           priority="0"/>
+  <hotspot filename="C:\Users\gnils\source\repos\grepper\grepper\grepper.cpp"
+           line_no="69"
+           routine="process"
+           is_vectorized="0"
+           self_time="0.000000E+00"
+           total_time="3.022808E-01"
+           trip_counts=""
+           func_instance="8"
+           priority="0"/>
+  <hotspot filename="D:\a\_work\1\s\src\vctools\crt\vcstartup\src\heap\new_scalar.cpp"
+           line_no="36"
+           routine="operator new"
+           is_vectorized="0"
+           self_time="0.000000E+00"
+           total_time="2.505316E-04"
+           trip_counts=""
+           func_instance="67"
+           priority="0"/>
+  <hotspot filename="C:\Users\gnils\source\repos\grepper\grepper\grepper.cpp"
+           line_no="227"
+           routine="main"
+           is_vectorized="0"
+           self_time="0.000000E+00"
+           total_time="1.053836E-04"
+           trip_counts=""
+           func_instance="26"
+           priority="0"/>
+</IntelParallelAdvisorSummary >

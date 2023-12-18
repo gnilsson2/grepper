@@ -5,9 +5,11 @@
 #include <string>
 #include <filesystem>
 #include "grepper.h"
-#include <fstream>
 #include <list>
 #include <functional>
+#include <windows.h>
+#include <tchar.h>
+#include <stdio.h>
 
 using namespace std::filesystem;
 
@@ -29,45 +31,118 @@ std::function<int(int)> cased = [](int x) {
 	return x;
 	};
 
-void process(string s)
+int numThreads = 0;
+
+DWORD WINAPI process(LPVOID lpParam)
+//void process(LPCWSTR s)
 {
-	ifstream ifs(s, ios_base::in | ios_base::binary, _SH_DENYNO);
+	HANDLE hFile;
+	hFile = CreateFile((LPCWSTR)lpParam,                // file to open
+		GENERIC_READ,           // open for reading
+		FILE_SHARE_READ| FILE_SHARE_WRITE|FILE_SHARE_DELETE,        // share 
+		NULL,                   // default security
+		OPEN_EXISTING,          // existing file only
+		FILE_FLAG_SEQUENTIAL_SCAN,   // overlapped operation
+		NULL);                  // no attr. template
 
-	if (ifs.good())
+	if (hFile == INVALID_HANDLE_VALUE)
 	{
-		while (!ifs.eof())
-		{
-			if (cased(ifs.get()) == firstCharToSearch)
-			{
-				size_t i = 1;
-				for (; i < stringToSearch.length(); i++)
-				{
-					if (cased(ifs.get()) != stringToSearch[i]) break;
-					if (ifs.eof()) break;
-				}
+		bad_files++;
+		CloseHandle(hFile);
+		LocalFree(lpParam);
+		numThreads--;
+		return 1;
+	}
 
-				if (i == stringToSearch.length())
+	do
+	{
+		char c=0;
+		DWORD nBytesRead;
+		BOOL bResult = ReadFile(hFile, &c, 1, &nBytesRead, NULL);
+
+		// Check for eof.
+		if (bResult && nBytesRead == 0)
+		{
+			break;
+		}
+		if (cased(c) == firstCharToSearch)
+		{
+			size_t i = 1;
+			for (; i < stringToSearch.length(); i++)
+			{
+				bResult = ReadFile(hFile, &c, 1, &nBytesRead, NULL);
+				// Check for eof.
+				if (bResult && nBytesRead == 0)
 				{
-					count_found++;
-					cout << s << "\n";
 					break;
-				}
+				}				
+				if (cased(c) != stringToSearch[i]) break;
+			}
+
+			if (i == stringToSearch.length())
+			{
+				count_found++;
+				wstring ws((LPCWSTR)lpParam);
+				cout << string(ws.begin(), ws.end()) << "\n";
+				break;
 			}
 		}
 
-		ifs.close();
-	}
-	else
-	{
-		bad_files++;
-	}
+	} while (true);
+
+	CloseHandle(hFile);
+	LocalFree(lpParam);
+	numThreads--;
+	return 0;
 }
 
 void visit(path p)
 {
 	//std::cout << "in " << p << "\n";
 	count_files++;
-	process(p.string());
+	//process(p.string());
+
+	wchar_t* s = (wchar_t*)p.c_str();
+	wchar_t* pData = (LPWSTR)LocalAlloc(LPTR, 2*wcslen(s)+2);
+
+	if (pData == NULL)
+	{
+		// If the array allocation fails, the system is out of memory
+		// so there is no point in trying to print an error message.
+		// Just terminate execution.
+		ExitProcess(2);
+	}
+
+	// Generate unique data for each thread to work with.
+	size_t i;
+	for (i = 0; i < wcslen(s); i++)
+	{
+		pData[i] = s[i];
+	}
+	pData[i] = 0;
+	// Create the thread to begin execution on its own.
+	DWORD dwThreadId;
+	HANDLE hThread = CreateThread(
+		NULL,                   // default security attributes
+		0,                      // use default stack size  
+		process,       // thread function name
+		pData,          // argument to thread function 
+		0,                      // use default creation flags 
+		&dwThreadId);   // returns the thread identifier 
+
+
+	// Check the return value for success.
+	// If CreateThread fails, terminate execution. 
+	// This will automatically clean up threads and memory. 
+
+	if (hThread == NULL)
+	{
+		//ErrorHandler(TEXT("CreateThread"));
+		ExitProcess(3);
+	}
+	numThreads++;
+	//WaitForSingleObject(hThread, INFINITE);
+	CloseHandle(hThread);
 }
 
 void usage()
@@ -138,7 +213,7 @@ int main(int argc, char* argv[])
 	if (verbose) std::cout << "Search in " << pathToSearch << "\n";
 	if (verbose) std::cout << "Search for " << stringToSearch << "\n";
 
-	if (verbose) for (auto e : excludedDirectories)
+	if (verbose) for (basic_string <char> e : excludedDirectories)
 		std::cout << "Excluding " << e << "\n";
 
 	if (ignoreCase)
@@ -153,7 +228,7 @@ int main(int argc, char* argv[])
 	{
 		path p = next->path();
 		bool exclude = false;
-		for (auto e : excludedDirectories)
+		for (basic_string <char> e : excludedDirectories)
 			if (p.string().find(e) != string::npos)
 			{
 				exclude = true;
@@ -167,6 +242,10 @@ int main(int argc, char* argv[])
 				visit(p);
 	}
 
+	while (numThreads)
+	{
+		Sleep(100);
+	}
 	if (verbose) std::cout << "Found " << count_found << " files\n";
 	if (verbose) std::cout << "Searched in " << count_files << " files\n";
 	if (verbose) std::cout << "            " << bad_files << " bad files\n";

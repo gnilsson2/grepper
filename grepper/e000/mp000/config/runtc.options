@@ -1,0 +1,143 @@
+-r
+C:\Users\gnils\source\repos\grepper\grepper\e000\mp000
+--tool=map
+--record-stack-frame
+--sample-size=400000
+--record-mem-allocations
+--search-dir
+sym=C:\\Users\\gnils\\source\\repos\\grepper\\x64\\Debug
+--search-dir
+sym:r=C:\\Users\\gnils\\source\\repos\\grepper
+--search-dir
+sym:r=srv*C:\\Users\\gnils\\AppData\\Local\\Temp\\SymbolCache*;https://msdl.microsoft.com/download/symbols
+--search-dir
+sym:rp=C:\\Users\\gnils\\AppData\\Local\\Temp\\SymbolCache
+--search-dir
+bin=C:\\Users\\gnils\\source\\repos\\grepper\\x64\\Debug
+--search-dir
+bin=C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.38.33130\\bin\\HostX64\\x64
+--search-dir
+bin=C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.22621.0\\x64
+--search-dir
+bin=C:\\Program Files (x86)\\Microsoft SDKs\\Windows\\v10.0A\\bin\\NETFX 4.8 Tools\\x64
+--search-dir
+bin=C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.22621.0\\x86
+--search-dir
+bin=C:\\Program Files (x86)\\Microsoft SDKs\\Windows\\v10.0A\\bin\\NETFX 4.8 Tools
+--search-dir
+bin=C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\tools
+--search-dir
+bin=C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\ide
+--search-dir
+bin=C:\\Program Files (x86)\\HTML Help Workshop
+--search-dir
+bin=C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin\\amd64
+--search-dir
+bin=C:\\WINDOWS\\Microsoft.NET\\Framework64\\v4.0.30319
+--search-dir
+bin=C:\\WINDOWS\\Microsoft.NET\\Framework\\v4.0.30319
+--search-dir
+bin=C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin
+--search-dir
+bin=C:\\Program Files (x86)\\Intel\\oneAPI\\tbb\\latest\\env\\..\\bin\
+--search-dir
+bin=C:\\Program Files (x86)\\Intel\\oneAPI\\mkl\\latest\\bin
+--search-dir
+bin=C:\\Program Files (x86)\\Intel\\oneAPI\\ippcp\\latest\\bin
+--search-dir
+bin=C:\\Program Files (x86)\\Intel\\oneAPI\\ipp\\latest\\bin
+--search-dir
+bin=C:\\Program Files (x86)\\Intel\\oneAPI\\dpcpp-ct\\latest\\env\\..\\bin
+--search-dir
+bin=C:\\Program Files (x86)\\Intel\\oneAPI\\dnnl\\latest\\env\\..\\bin
+--search-dir
+bin=C:\\Program Files (x86)\\Intel\\oneAPI\\dev-utilities\\latest\\bin
+--search-dir
+bin=C:\\Program Files (x86)\\Intel\\oneAPI\\debugger\\latest\\env\\\\..\\opt\\debugger\\bin
+--search-dir
+bin=C:\\Program Files (x86)\\Intel\\oneAPI\\dal\\latest\\bin
+--search-dir
+bin=C:\\Program Files (x86)\\Intel\\oneAPI\\compiler\\latest\\bin
+--search-dir
+bin=C:\\Program Files (x86)\\Intel\\oneAPI\\compiler\\latest\\opt\\oclfpga\\host\\windows64\\bin
+--search-dir
+bin=C:\\Program Files (x86)\\Intel\\oneAPI\\compiler\\latest\\opt\\oclfpga\\bin
+--search-dir
+bin=C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\VC\\VCPackages
+--search-dir
+bin=C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\TestWindow
+--search-dir
+bin=C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\TeamFoundation\\Team Explorer
+--search-dir
+bin=C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\bin\\Roslyn
+--search-dir
+bin=C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Team Tools\\Performance Tools\\x64
+--search-dir
+bin=C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Team Tools\\Performance Tools
+--search-dir
+bin=C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\FSharp\\Tools
+--search-dir
+bin=C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Team Tools\\DiagnosticsHub\\Collector
+--search-dir
+bin=C:\\Program Files (x86)\\Windows Kits\\10\\bin\\\\x64
+--search-dir
+bin=C:\\Program Files (x86)\\Common Files\\Oracle\\Java\\javapath
+--search-dir
+bin=C:\\WINDOWS\\system32
+--search-dir
+bin=C:\\WINDOWS
+--search-dir
+bin=C:\\WINDOWS\\System32\\Wbem
+--search-dir
+bin=C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0
+--search-dir
+bin=C:\\WINDOWS\\System32\\OpenSSH
+--search-dir
+bin=C:\\Program Files\\dotnet
+--search-dir
+bin=C:\\Program Files (x86)\\IVI Foundation\\VISA\\WinNT\\Bin
+--search-dir
+bin=C:\\Program Files\\IVI Foundation\\VISA\\Win64\\Bin
+--search-dir
+bin=C:\\Program Files (x86)\\PDFtk\\bin
+--search-dir
+bin=C:\\Program Files\\PuTTY
+--search-dir
+bin=C:\\Program Files (x86)\\National Instruments\\Shared\\LabVIEW CLI
+--search-dir
+bin=C:\\Program Files\\Git\\cmd
+--search-dir
+bin=C:\\Program Files\\NVIDIA Corporation\\NVIDIA NvDLISR
+--search-dir
+bin=C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common
+--search-dir
+bin=C:\\Users\\gnils\\AppData\\Local\\Microsoft\\WindowsApps
+--search-dir
+bin=C:\\Users\\gnils\\AppData\\Local\\GitHubDesktop\\bin
+--search-dir
+bin=C:\\Users\\gnils\\AppData\\Local\\Programs\\Microsoft VS Code\\bin
+--search-dir
+bin=C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin
+--search-dir
+bin=C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\Ninja
+--search-dir
+bin=C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\VC\\Linux\\bin\\ConnectionManagerExe
+--search-dir
+bin=C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\vcpkg
+--search-dir
+bin=C:\\Program Files (x86)\\Intel\\oneAPI\\advisor\\2024.0\\bin64
+--search-dir
+bin=C:\\Program Files (x86)\\Intel\\oneAPI\\compiler\\latest\\lib\\ocloc
+--search-dir
+bin=C:\\Program Files (x86)\\Intel\\oneAPI\\vtune\\2024.0\\bin64
+--search-dir
+bin=C:\\Users\\gnils\\source\\repos\\grepper
+--app-working-dir=C:\\Users\\gnils\\source\\repos\\grepper\\x64\\Debug
+--
+C:\\Users\\gnils\\source\\repos\\grepper\\x64\\Debug\\grepper.exe
+-i
+-v
+--exclude-dir=.git
+--exclude-dir=.vs
+--search-in=C:\Users\gnils\Documents\_MyProj
+about.vi

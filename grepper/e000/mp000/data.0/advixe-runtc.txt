@@ -1,0 +1,17 @@
+
+=== Start: [2023/12/18 14:39:57] === 
+Analysis started...
+Result file: C:\Users\gnils\source\repos\grepper\grepper\e000\mp000\mp000.advixe 
+Found target process c:\users\gnils\source\repos\grepper\x64\debug\grepper.exe (PID = 53268). Analysis started... 
+Loaded module: c:\users\gnils\source\repos\grepper\x64\debug\grepper.exe. 
+Loaded module: c:\windows\system32\kernelbase.dll. 
+Loaded module: c:\windows\system32\kernel32.dll. 
+Loaded module: c:\windows\system32\ntdll.dll. 
+Loaded module: c:\windows\system32\vcruntime140_1d.dll. 
+Loaded module: c:\windows\system32\ucrtbased.dll. 
+Loaded module: c:\windows\system32\msvcp140d.dll. 
+Loaded module: c:\windows\system32\vcruntime140d.dll. 
+Application exit code: -1073740940 
+Result file: C:\Users\gnils\source\repos\grepper\grepper\e000\mp000\mp000.advixe 
+Analysis completed
+=== End: [2023/12/18 14:40:09] === 
