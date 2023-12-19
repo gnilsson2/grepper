@@ -2,13 +2,10 @@
 //
 
 #include <iostream>
-#include <string>
 #include <filesystem>
 #include <list>
 #include <functional>
 #include <windows.h>
-#include <tchar.h>
-#include <stdio.h>
 
 using namespace std::filesystem;
 
@@ -20,9 +17,9 @@ int bad_files = 0;
 
 bool ignoreCase = false;
 
-list<basic_string<char>> excludedDirectories;
+list<wstring> excludedDirectories;
 int firstCharToSearch;
-basic_string<char> stringToSearch;
+wstring stringToSearch;
 
 
 std::function<int(int)> cased = [](int x) {
@@ -172,16 +169,17 @@ int main(int argc, char* argv[])
 {
 	bool verbose = false;
 
-	path pathToSearch;
+	wstring pathToSearch;
 
 	if (argc < 3)
 	{
 		usage();
 		return 1;
 	}
-	for (size_t i = 0; i < argc; i++)
+
+	for (size_t i = 1; i < argc; i++)
 	{
-		basic_string <char> p(argv[i]);
+		string p(argv[i]);
 
 		if (p.compare("-h") == 0)
 		{
@@ -195,17 +193,22 @@ int main(int argc, char* argv[])
 			ignoreCase = true;
 
 		if (p.starts_with("--search-in="))
-			pathToSearch = p.erase(0, 12);
+		{
+			auto d = p.erase(0, 12);
+			wstring wstr(d.begin(), d.end());
+			pathToSearch = wstr;
+		}
 
 		if (p.starts_with("--exclude-dir="))
 		{
-			basic_string <char> e (p.erase(0, 14));
-			excludedDirectories.push_back(e);
+			auto d(p.erase(0, 14));
+			wstring wstr(d.begin(), d.end());
+			excludedDirectories.push_back(wstr);
 		}
 
 		if (i == static_cast<unsigned long long>(argc) - 1)
 		{
-			stringToSearch = p;
+			stringToSearch = wstring(p.begin(), p.end());
 		}
 	}
 
@@ -217,11 +220,11 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	if (verbose) std::cout << "Search in " << pathToSearch << "\n";
-	if (verbose) std::cout << "Search for " << stringToSearch << "\n";
+	if (verbose) std::wcout << "Search in " << pathToSearch << "\n";
+	if (verbose) std::wcout << "Search for " << stringToSearch << "\n";
 
-	if (verbose) for (basic_string <char> e : excludedDirectories)
-		std::cout << "Excluding " << e << "\n";
+	if (verbose) for (auto e : excludedDirectories)
+		wcout << "Excluding " << e << "\n";
 
 	if (ignoreCase)
 	{
@@ -231,22 +234,51 @@ int main(int argc, char* argv[])
 
 	firstCharToSearch = stringToSearch[0];
 
-	for (recursive_directory_iterator next(pathToSearch), end; next != end; ++next)
+	int count = 0; //only for breakpoint condition
+	for (const directory_entry& dir_entry : recursive_directory_iterator(pathToSearch, directory_options::skip_permission_denied))
 	{
-		path p = next->path();
-		bool exclude = false;
-		for (basic_string <char> e : excludedDirectories)
-			if (p.string().find(e) != string::npos)
+		count++;
+		try {
+			if (!dir_entry.exists()) continue;
+			if (dir_entry.is_symlink()) continue;
+			if (!dir_entry.is_regular_file()) continue;
+			if (dir_entry.file_size()==0) continue;
+				
+			path p = dir_entry.path();
+			bool exclude = false;
+			for (auto e : excludedDirectories)
 			{
-				exclude = true;
-				break;
+				try 
+				{
+					if (p.wstring().find(e) != string::npos)
+					{
+						exclude = true;
+						break;
+					}
+				}
+				catch (std::exception const& x) {
+					std::cout << "Exception1 while iterating directory." + std::string(x.what()) << "\n";
+					exclude = true;
+					break;
+				}
+				catch (...) {
+					std::cout << "Unknown1 exception while iterating directory.\n";
+					exclude = true;
+					break;
+				}
 			}
-		
-		if (exclude) continue;
 
-		if (is_regular_file(p))
+			if (exclude) continue;
+
 			if (!filesystem::is_empty(p))
 				visit(p);
+		}
+		catch (std::exception const& e) {
+			std::cout << "Exception while iterating directory." + std::string(e.what()) << "\n";
+		}
+		catch (...) {
+			std::cout << "Unknown exception while iterating directory.\n";
+		}
 	}
 
 	while (numThreads)
