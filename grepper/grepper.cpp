@@ -4,7 +4,6 @@
 #include <iostream>
 #include <filesystem>
 #include <list>
-#include <functional>
 #include <windows.h>
 
 using namespace std::filesystem;
@@ -15,17 +14,9 @@ int count_files = 0;
 int count_found = 0;
 int bad_files = 0;
 
-bool ignoreCase = false;
-
 list<wstring> excludedDirectories;
 int firstCharToSearch;
 wstring stringToSearch;
-
-
-std::function<int(int)> cased = [](int x) {
-	if (ignoreCase) return tolower(x);
-	return x;
-	};
 
 volatile long numThreads = 0;
 
@@ -78,13 +69,13 @@ DWORD WINAPI process(LPVOID lpParam)
 	char* end = c + size;
 	while (c < end)
 	{
-		if (cased(*c++) == firstCharToSearch)
+		if (tolower(*c++) == firstCharToSearch)
 		{
 			size_t i = 1;
 			for (; i < stringToSearch.length(); i++)
 			{
 				if (c >= end) break;
-				if (cased(*c++) != stringToSearch[i]) break;
+				if (tolower(*c++) != stringToSearch[i]) break;
 			}
 
 			if (i == stringToSearch.length())
@@ -189,9 +180,6 @@ int main(int argc, char* argv[])
 		if (p.compare("-v")==0)
 			verbose = true;
 
-		if (p.compare("-i") == 0)
-			ignoreCase = true;
-
 		if (p.starts_with("--search-in="))
 		{
 			auto d = p.erase(0, 12);
@@ -226,11 +214,8 @@ int main(int argc, char* argv[])
 	if (verbose) for (auto e : excludedDirectories)
 		wcout << "Excluding " << e << "\n";
 
-	if (ignoreCase)
-	{
-		std::transform(stringToSearch.begin(), stringToSearch.end(), stringToSearch.begin(),
-			[](unsigned char c) { return std::tolower(c); });
-	}
+	std::transform(stringToSearch.begin(), stringToSearch.end(), stringToSearch.begin(),
+		[](unsigned char c) { return std::tolower(c); });
 
 	firstCharToSearch = stringToSearch[0];
 
