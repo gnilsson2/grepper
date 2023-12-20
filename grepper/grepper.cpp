@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <list>
 #include <windows.h>
+#include <mutex>
 
 using namespace std::filesystem;
 
@@ -19,6 +20,8 @@ int firstCharToSearch;
 wstring stringToSearch;
 
 volatile long numThreads = 0;
+
+mutex cout_mutex;
 
 DWORD WINAPI process(LPVOID lpParam)
 {
@@ -64,7 +67,7 @@ DWORD WINAPI process(LPVOID lpParam)
 	}
 
 	char* c = (char*)map;
-	long long size;
+	long long size=0;
 	GetFileSizeEx(hFile,(PLARGE_INTEGER) & size);
 	char* end = c + size;
 	while (c < end)
@@ -82,6 +85,7 @@ DWORD WINAPI process(LPVOID lpParam)
 			{
 				count_found++;
 				wstring ws((LPCWSTR)lpParam);
+				std::lock_guard<std::mutex> lock(cout_mutex);
 				cout << string(ws.begin(), ws.end()) << "\n";
 				break;
 			}
@@ -147,7 +151,7 @@ void usage()
 {
 	std::cout << "Usage: grepper [options] string\n";
 	std::cout << "   --search-in=string\tWhere to search recursively\n";
-	std::cout << "   --exclude-dir=string\n";
+	std::cout << "   --exclude-dir=string\tRepeat for each directory to exclude\n";
 	std::cout << "   string\tText to be searched for\n";
 	std::cout << "Example:\n";
 	std::cout << "  grepper --exclude-dir =.git --exclude-dir =.vs --search-in=\"C:\\Users\\gnils\\Documents\\_MyProj\" \"My vi.vi\"\n";
@@ -155,9 +159,45 @@ void usage()
 }
 
 // -i -v --exclude-dir=.git --exclude-dir=.vs --search-in="C:\Users\gnils\Documents\_MyProj" "GetProcess or ThreadTimes.vi"
+BOOL WINAPI CtrlHandler(DWORD fdwCtrlType)
+{
+	switch (fdwCtrlType)
+	{
+		// Handle the CTRL-C signal.
+	case CTRL_C_EVENT:
+		printf("Ctrl-C event\n\n");
+		TerminateProcess(GetCurrentProcess(),1);
+		return TRUE;
 
+		// CTRL-CLOSE: confirm that the user wants to exit.
+	case CTRL_CLOSE_EVENT:
+		Beep(600, 200);
+		printf("Ctrl-Close event\n\n");
+		return TRUE;
+
+		// Pass other signals to the next handler.
+	case CTRL_BREAK_EVENT:
+		Beep(900, 200);
+		printf("Ctrl-Break event\n\n");
+		return FALSE;
+
+	case CTRL_LOGOFF_EVENT:
+		Beep(1000, 200);
+		printf("Ctrl-Logoff event\n\n");
+		return FALSE;
+
+	case CTRL_SHUTDOWN_EVENT:
+		Beep(750, 500);
+		printf("Ctrl-Shutdown event\n\n");
+		return FALSE;
+
+	default:
+		return FALSE;
+	}
+}
 int main(int argc, char* argv[])
 {
+	SetConsoleCtrlHandler(CtrlHandler, TRUE);
 	bool verbose = false;
 
 	wstring pathToSearch;
@@ -182,14 +222,14 @@ int main(int argc, char* argv[])
 
 		if (p.starts_with("--search-in="))
 		{
-			auto d = p.erase(0, 12);
+			string d = p.erase(0, 12);
 			wstring wstr(d.begin(), d.end());
 			pathToSearch = wstr;
 		}
 
 		if (p.starts_with("--exclude-dir="))
 		{
-			auto d(p.erase(0, 14));
+			string d(p.erase(0, 14));
 			wstring wstr(d.begin(), d.end());
 			excludedDirectories.push_back(wstr);
 		}
@@ -211,7 +251,7 @@ int main(int argc, char* argv[])
 	if (verbose) std::wcout << "Search in " << pathToSearch << "\n";
 	if (verbose) std::wcout << "Search for " << stringToSearch << "\n";
 
-	if (verbose) for (auto e : excludedDirectories)
+	if (verbose) for (wstring e : excludedDirectories)
 		wcout << "Excluding " << e << "\n";
 
 	std::transform(stringToSearch.begin(), stringToSearch.end(), stringToSearch.begin(),
@@ -223,6 +263,7 @@ int main(int argc, char* argv[])
 	for (const directory_entry& dir_entry : recursive_directory_iterator(pathToSearch, directory_options::skip_permission_denied))
 	{
 		count++;
+		Sleep(0);
 		try {
 			if (!dir_entry.exists()) continue;
 			if (dir_entry.is_symlink()) continue;
@@ -231,7 +272,7 @@ int main(int argc, char* argv[])
 				
 			path p = dir_entry.path();
 			bool exclude = false;
-			for (auto e : excludedDirectories)
+			for (wstring e : excludedDirectories)
 			{
 				try 
 				{
@@ -242,12 +283,12 @@ int main(int argc, char* argv[])
 					}
 				}
 				catch (std::exception const& x) {
-					std::cout << "Exception1 while iterating directory." + std::string(x.what()) << "\n";
+					std::cerr << "Exception1 while iterating directory." + std::string(x.what()) << "\n";
 					exclude = true;
 					break;
 				}
 				catch (...) {
-					std::cout << "Unknown1 exception while iterating directory.\n";
+					std::cerr << "Unknown1 exception while iterating directory.\n";
 					exclude = true;
 					break;
 				}
@@ -259,10 +300,11 @@ int main(int argc, char* argv[])
 				visit(p);
 		}
 		catch (std::exception const& e) {
-			std::cout << "Exception while iterating directory." + std::string(e.what()) << "\n";
+			UNREFERENCED_PARAMETER(e);
+			//std::cerr << "Exception while iterating directory." + std::string(e.what()) << "\n";
 		}
 		catch (...) {
-			std::cout << "Unknown exception while iterating directory.\n";
+			std::cerr << "Unknown exception while iterating directory.\n";
 		}
 	}
 
