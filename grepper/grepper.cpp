@@ -200,7 +200,7 @@ int main(int argc, char* argv[])
 	SetConsoleCtrlHandler(CtrlHandler, TRUE);
 	bool verbose = false;
 
-	wstring pathToSearch;
+	path pathToSearch;
 
 	if (argc < 3)
 	{
@@ -247,8 +247,7 @@ int main(int argc, char* argv[])
 		usage();
 		return 1;
 	}
-
-	if (verbose) std::wcout << "Search in " << pathToSearch << "\n";
+	if (verbose) std::wcout << "Search in " << pathToSearch.wstring() << "\n";
 	if (verbose) std::wcout << "Search for " << stringToSearch << "\n";
 
 	if (verbose) for (wstring e : excludedDirectories)
@@ -315,6 +314,6 @@ int main(int argc, char* argv[])
 
 	if (verbose) std::cout << "Found " << count_found << " files\n";
 	if (verbose) std::cout << "Searched in " << count_files << " files\n";
-	if (verbose) std::cout << "            " << bad_files << " bad files\n";
+	if (verbose) std::cout << "Unable to read " << bad_files << " files\n";
 
 }
