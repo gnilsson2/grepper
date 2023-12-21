@@ -19,13 +19,13 @@ list<wstring> excludedDirectories;
 int firstCharToSearch;
 wstring stringToSearch;
 
-volatile long numThreads = 0;
+atomic_ullong numThreads = 0;
 
 mutex cout_mutex;
 
 DWORD WINAPI process(LPVOID lpParam)
 {
-	InterlockedIncrement(&numThreads);
+	numThreads++;
 
 	HANDLE hFile;
 	hFile = CreateFile((LPCWSTR)lpParam,                // file to open
@@ -41,7 +41,7 @@ DWORD WINAPI process(LPVOID lpParam)
 		bad_files++;
 		CloseHandle(hFile);
 		LocalFree(lpParam);
-		InterlockedDecrement(&numThreads);
+		numThreads--;
 		return 1;
 	}
 
@@ -51,7 +51,7 @@ DWORD WINAPI process(LPVOID lpParam)
 		bad_files++;
 		CloseHandle(hFile);
 		LocalFree(lpParam);
-		InterlockedDecrement(&numThreads);
+		numThreads--;
 		return 1;
 	}
 
@@ -62,7 +62,7 @@ DWORD WINAPI process(LPVOID lpParam)
 		CloseHandle(fileMap);
 		CloseHandle(hFile);
 		LocalFree(lpParam);
-		InterlockedDecrement(&numThreads);
+		numThreads--;
 		return 1;
 	}
 
@@ -96,7 +96,7 @@ DWORD WINAPI process(LPVOID lpParam)
 	CloseHandle(fileMap);
 	CloseHandle(hFile);
 	LocalFree(lpParam);
-	InterlockedDecrement(&numThreads);
+	numThreads--;
 	return 0;
 }
 
