@@ -1,4 +1,4 @@
-A Windows find in files, somewhat like grep.  
+A Windows "find in files", somewhat like grep.  
 Allways reqursive (like grep -r)  
 Allways ingore case (like grep -i)  
 Searches in parallel, so quite fast, but can heavely load your cpu, if you search in like C:\  
