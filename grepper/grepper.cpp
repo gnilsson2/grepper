@@ -133,7 +133,6 @@ void visit(path p)
 		0,                      // use default creation flags 
 		&dwThreadId);   // returns the thread identifier 
 
-
 	// Check the return value for success.
 	// If CreateThread fails, terminate execution. 
 	// This will automatically clean up threads and memory. 
@@ -143,6 +142,7 @@ void visit(path p)
 		//ErrorHandler(TEXT("CreateThread"));
 		ExitProcess(3);
 	}
+	SetThreadPriority(hThread, THREAD_PRIORITY_BELOW_NORMAL);
 	//WaitForSingleObject(hThread, INFINITE); //debug
 	CloseHandle(hThread);
 }
@@ -158,7 +158,8 @@ void usage()
 
 }
 
-// -i -v --exclude-dir=.git --exclude-dir=.vs --search-in="C:\Users\gnils\Documents\_MyProj" "GetProcess or ThreadTimes.vi"
+// -v --exclude-dir=.git --exclude-dir=.vs --search-in="C:\Users\gnils\Documents\_MyProj" "GetProcess or ThreadTimes.vi"
+
 BOOL WINAPI CtrlHandler(DWORD fdwCtrlType)
 {
 	switch (fdwCtrlType)
@@ -168,29 +169,6 @@ BOOL WINAPI CtrlHandler(DWORD fdwCtrlType)
 		printf("Ctrl-C event\n\n");
 		TerminateProcess(GetCurrentProcess(),1);
 		return TRUE;
-
-		// CTRL-CLOSE: confirm that the user wants to exit.
-	case CTRL_CLOSE_EVENT:
-		Beep(600, 200);
-		printf("Ctrl-Close event\n\n");
-		return TRUE;
-
-		// Pass other signals to the next handler.
-	case CTRL_BREAK_EVENT:
-		Beep(900, 200);
-		printf("Ctrl-Break event\n\n");
-		return FALSE;
-
-	case CTRL_LOGOFF_EVENT:
-		Beep(1000, 200);
-		printf("Ctrl-Logoff event\n\n");
-		return FALSE;
-
-	case CTRL_SHUTDOWN_EVENT:
-		Beep(750, 500);
-		printf("Ctrl-Shutdown event\n\n");
-		return FALSE;
-
 	default:
 		return FALSE;
 	}
