@@ -164,9 +164,12 @@ BOOL WINAPI CtrlHandler(DWORD fdwCtrlType)
 void usage()
 {
 	std::cout << "Usage: grepper [options] string path\n";
+	std::cout << "Search for string in all files recursively in path.\n";
+	std::cout << "\n";
 	std::cout << "   --exclude-dir=string\tRepeat for each directory to exclude\n";
 	std::cout << "   string\t\tText to be searched for\n";
 	std::cout << "   path\t\t\tWhere to search recursively\n";
+	std::cout << "\n";
 	std::cout << "Example:\n";
 	std::cout << "  grepper --exclude-dir =.git --exclude-dir =.vs \"My vi.vi\" \"C:\\Users\\gnils\\Documents\\_MyProj\"\n";
 
@@ -182,7 +185,7 @@ int main(int argc, char* argv[])
 
 	path pathToSearch;
 
-	if (argc < 3)
+	if (argc < 2)
 	{
 		usage();
 		return 1;
@@ -236,7 +239,7 @@ int main(int argc, char* argv[])
 
 	if (pathToSearch.empty())
 	{
-		std::cout << "ERROR: option --search-in is required\n";
+		std::cout << "ERROR: parameter path is required\n";
 
 		usage();
 		return 1;
