@@ -147,19 +147,6 @@ void visit(path p)
 	CloseHandle(hThread);
 }
 
-void usage()
-{
-	std::cout << "Usage: grepper [options] string\n";
-	std::cout << "   --search-in=string\tWhere to search recursively\n";
-	std::cout << "   --exclude-dir=string\tRepeat for each directory to exclude\n";
-	std::cout << "   string\tText to be searched for\n";
-	std::cout << "Example:\n";
-	std::cout << "  grepper --exclude-dir =.git --exclude-dir =.vs --search-in=\"C:\\Users\\gnils\\Documents\\_MyProj\" \"My vi.vi\"\n";
-
-}
-
-// -v --exclude-dir=.git --exclude-dir=.vs --search-in="C:\Users\gnils\Documents\_MyProj" "GetProcess or ThreadTimes.vi"
-
 BOOL WINAPI CtrlHandler(DWORD fdwCtrlType)
 {
 	switch (fdwCtrlType)
@@ -173,6 +160,21 @@ BOOL WINAPI CtrlHandler(DWORD fdwCtrlType)
 		return FALSE;
 	}
 }
+
+void usage()
+{
+	std::cout << "Usage: grepper [options] string path\n";
+	std::cout << "   --exclude-dir=string\tRepeat for each directory to exclude\n";
+	std::cout << "   string\t\tText to be searched for\n";
+	std::cout << "   path\t\t\tWhere to search recursively\n";
+	std::cout << "Example:\n";
+	std::cout << "  grepper --exclude-dir =.git --exclude-dir =.vs \"My vi.vi\" \"C:\\Users\\gnils\\Documents\\_MyProj\"\n";
+
+}
+
+// -v --exclude-dir=.git --exclude-dir=.vs --search-in="C:\Users\gnils\Documents\_MyProj" "GetProcess or ThreadTimes.vi"
+// grep [OPTION...] PATTERNS [FILE...]
+
 int main(int argc, char* argv[])
 {
 	SetConsoleCtrlHandler(CtrlHandler, TRUE);
@@ -195,26 +197,40 @@ int main(int argc, char* argv[])
 			usage();
 			return 1;
 		}
-		if (p.compare("-v")==0)
-			verbose = true;
-
-		if (p.starts_with("--search-in="))
+		if (p.compare("-v") == 0)
 		{
-			string d = p.erase(0, 12);
-			wstring wstr(d.begin(), d.end());
-			pathToSearch = wstr;
+			verbose = true;
+			continue;
 		}
+
+		//if (p.starts_with("--search-in="))
+		//{
+		//	string d = p.erase(0, 12);
+		//	wstring wstr(d.begin(), d.end());
+		//	pathToSearch = wstr;
+		//	continue;
+		//}
 
 		if (p.starts_with("--exclude-dir="))
 		{
 			string d(p.erase(0, 14));
 			wstring wstr(d.begin(), d.end());
 			excludedDirectories.push_back(wstr);
+			continue;
 		}
 
-		if (i == static_cast<unsigned long long>(argc) - 1)
+		//if (i == static_cast<unsigned long long>(argc) - 1)
+		if (!p.starts_with('-') && stringToSearch.empty())
 		{
 			stringToSearch = wstring(p.begin(), p.end());
+			continue;
+		}
+
+		if (!p.starts_with('-') && !stringToSearch.empty())
+		{
+			wstring wstr(p.begin(), p.end());
+			pathToSearch = wstr;
+			continue;
 		}
 	}
 
