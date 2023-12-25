@@ -304,10 +304,10 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	while (numThreads)
+	do 
 	{
 		Sleep(100);
-	}
+	} while (numThreads);
 
 	if (verbose) std::cout << "Found " << count_found << " files\n";
 	if (verbose) std::cout << "Searched in " << count_files << " files\n";
