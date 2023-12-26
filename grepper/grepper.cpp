@@ -200,12 +200,12 @@ int main(int argc, char* argv[])
 	{
 		string p(argv[i]);
 
-		if (p.compare("-h") == 0)
+		if (p.compare("-h") == 0 || p.compare("/H") == 0 || p.compare("/h") == 0 || p.compare("/?") == 0)
 		{
 			usage();
 			return 1;
 		}
-		if (p.compare("-v") == 0)
+		if (p.compare("-v") == 0 || p.compare("/V") == 0 || p.compare("/v") == 0)
 		{
 			verbose = true;
 			continue;
@@ -218,14 +218,21 @@ int main(int argc, char* argv[])
 			excludedDirectories.push_back(wstr);
 			continue;
 		}
+		if (p.starts_with("/X:") || p.starts_with("/x:"))
+		{
+			string d(p.erase(0, 3));
+			wstring wstr(d.begin(), d.end());
+			excludedDirectories.push_back(wstr);
+			continue;
+		}
 
-		if (!p.starts_with('-') && stringToSearch.empty())
+		if (!p.starts_with('-') && !p.starts_with('/') && stringToSearch.empty())
 		{
 			stringToSearch = wstring(p.begin(), p.end());
 			continue;
 		}
 
-		if (!p.starts_with('-') && !stringToSearch.empty())
+		if (!p.starts_with('-') && !p.starts_with('/') && !stringToSearch.empty())
 		{
 			wstring wstr(p.begin(), p.end());
 			pathToSearch = wstr;
@@ -240,6 +247,7 @@ int main(int argc, char* argv[])
 		usage();
 		return 1;
 	}
+
 	if (verbose) std::wcout << "Search in " << pathToSearch.wstring() << "\n";
 	if (verbose) std::wcout << "Search for " << stringToSearch << "\n";
 
