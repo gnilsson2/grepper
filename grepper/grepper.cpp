@@ -20,12 +20,15 @@ int firstCharToSearch;
 wstring stringToSearch;
 
 atomic_ullong numThreads = 0;
+atomic<bool> threadStarted{ false };
 
 mutex cout_mutex;
 
 DWORD WINAPI process(LPVOID lpParam)
 {
 	numThreads++;
+	threadStarted = true;
+	threadStarted.notify_one();
 
 	HANDLE hFile;
 	hFile = CreateFile((LPCWSTR)lpParam,                // file to open
@@ -123,6 +126,7 @@ void visit(path p)
 	}
 	pData[i] = 0;
 
+	threadStarted = false;
 	// Create the thread to begin execution on its own.
 	DWORD dwThreadId;
 	HANDLE hThread = CreateThread(
@@ -139,11 +143,12 @@ void visit(path p)
 
 	if (hThread == NULL)
 	{
-		//ErrorHandler(TEXT("CreateThread"));
 		ExitProcess(3);
 	}
 	SetThreadPriority(hThread, THREAD_PRIORITY_BELOW_NORMAL);
-	//WaitForSingleObject(hThread, INFINITE); //debug
+
+	threadStarted.wait(false);
+	
 	CloseHandle(hThread);
 }
 
@@ -151,7 +156,7 @@ BOOL WINAPI CtrlHandler(DWORD fdwCtrlType)
 {
 	switch (fdwCtrlType)
 	{
-		// Handle the CTRL-C signal.
+	// Handle the CTRL-C signal.
 	case CTRL_C_EVENT:
 		printf("Ctrl-C event\n\n");
 		TerminateProcess(GetCurrentProcess(),1);
@@ -175,7 +180,7 @@ void usage()
 
 }
 
-// -v --exclude-dir=.git --exclude-dir=.vs --search-in="C:\Users\gnils\Documents\_MyProj" "GetProcess or ThreadTimes.vi"
+// -v --exclude-dir=.git --exclude-dir=.vs "GetProcess or ThreadTimes.vi" "C:\Users\gnils\Documents\_MyProj"
 // grep [OPTION...] PATTERNS [FILE...]
 
 int main(int argc, char* argv[])
@@ -206,14 +211,6 @@ int main(int argc, char* argv[])
 			continue;
 		}
 
-		//if (p.starts_with("--search-in="))
-		//{
-		//	string d = p.erase(0, 12);
-		//	wstring wstr(d.begin(), d.end());
-		//	pathToSearch = wstr;
-		//	continue;
-		//}
-
 		if (p.starts_with("--exclude-dir="))
 		{
 			string d(p.erase(0, 14));
@@ -222,7 +219,6 @@ int main(int argc, char* argv[])
 			continue;
 		}
 
-		//if (i == static_cast<unsigned long long>(argc) - 1)
 		if (!p.starts_with('-') && stringToSearch.empty())
 		{
 			stringToSearch = wstring(p.begin(), p.end());
@@ -304,10 +300,10 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	do 
+	while (numThreads)
 	{
 		Sleep(100);
-	} while (numThreads);
+	};
 
 	if (verbose) std::cout << "Found " << count_found << " files\n";
 	if (verbose) std::cout << "Searched in " << count_files << " files\n";
