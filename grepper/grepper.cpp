@@ -16,6 +16,7 @@ int count_found = 0;
 int bad_files = 0;
 
 list<wstring> excludedDirectories;
+list<wstring> includedFiles;
 int firstCharToSearch;
 wstring stringToSearch;
 
@@ -234,6 +235,15 @@ int main(int argc, char* argv[])
 
 		if (!p.starts_with('-') && !p.starts_with('/') && !stringToSearch.empty())
 		{
+			std::wstring::size_type f = p.find('*');
+			if (f != string::npos)
+			{
+				wstring wstr(p.begin(), p.begin()+f);
+				pathToSearch = wstr;
+				wstring wstr1(p.begin() + f + 1,p.end());
+				includedFiles.push_back(wstr1);
+				continue;
+			}
 			wstring wstr(p.begin(), p.end());
 			pathToSearch = wstr;
 			continue;
@@ -251,8 +261,8 @@ int main(int argc, char* argv[])
 	if (verbose) std::wcout << "Search in " << pathToSearch.wstring() << "\n";
 	if (verbose) std::wcout << "Search for " << stringToSearch << "\n";
 
-	if (verbose) for (wstring e : excludedDirectories)
-		wcout << "Excluding " << e << "\n";
+	if (verbose) for (wstring e : excludedDirectories) wcout << "Excluding " << e << "\n";
+	if (verbose) for (wstring e : includedFiles) wcout << "Including " << e << "\n";
 
 	std::transform(stringToSearch.begin(), stringToSearch.end(), stringToSearch.begin(),
 		[](unsigned char c) { return std::tolower(c); });
@@ -260,54 +270,83 @@ int main(int argc, char* argv[])
 	firstCharToSearch = stringToSearch[0];
 
 	int count = 0; //only for breakpoint condition
-	for (const directory_entry& dir_entry : recursive_directory_iterator(pathToSearch, directory_options::skip_permission_denied))
+	try
 	{
-		count++;
-		Sleep(0);
-		try {
-			if (!dir_entry.exists()) continue;
-			if (dir_entry.is_symlink()) continue;
-			if (!dir_entry.is_regular_file()) continue;
-			if (dir_entry.file_size()==0) continue;
-				
-			path p = dir_entry.path();
-			bool exclude = false;
-			for (wstring e : excludedDirectories)
-			{
-				try 
+		for (const directory_entry& dir_entry : recursive_directory_iterator(pathToSearch, directory_options::skip_permission_denied))
+		{
+			count++;
+			Sleep(0);
+			try {
+				if (!dir_entry.exists()) continue;
+				if (dir_entry.is_symlink()) continue;
+				if (!dir_entry.is_regular_file()) continue;
+				if (dir_entry.file_size() == 0) continue;
+
+				path p = dir_entry.path();
+				bool exclude = false;
+				for (wstring e : excludedDirectories)
 				{
-					if (p.wstring().find(e) != string::npos)
+					try
 					{
+						if (p.wstring().find(e) != string::npos)
+						{
+							exclude = true;
+							break;
+						}
+					}
+					catch (std::exception const& x) {
+						std::cerr << "Exception1 while iterating directory." + std::string(x.what()) << "\n";
+						exclude = true;
+						break;
+					}
+					catch (...) {
+						std::cerr << "Unknown1 exception while iterating directory.\n";
 						exclude = true;
 						break;
 					}
 				}
-				catch (std::exception const& x) {
-					std::cerr << "Exception1 while iterating directory." + std::string(x.what()) << "\n";
-					exclude = true;
-					break;
+
+				for (wstring e : includedFiles)
+				{
+					try
+					{
+						if (p.wstring().find(e) == string::npos)
+						{
+							exclude = true;
+							break;
+						}
+					}
+					catch (std::exception const& x) {
+						std::cerr << "Exception1 while iterating directory." + std::string(x.what()) << "\n";
+						exclude = true;
+						break;
+					}
+					catch (...) {
+						std::cerr << "Unknown1 exception while iterating directory.\n";
+						exclude = true;
+						break;
+					}
 				}
-				catch (...) {
-					std::cerr << "Unknown1 exception while iterating directory.\n";
-					exclude = true;
-					break;
-				}
+
+				if (exclude) continue;
+
+				if (!filesystem::is_empty(p))
+					visit(p);
 			}
-
-			if (exclude) continue;
-
-			if (!filesystem::is_empty(p))
-				visit(p);
-		}
-		catch (std::exception const& e) {
-			UNREFERENCED_PARAMETER(e);
-			//std::cerr << "Exception while iterating directory." + std::string(e.what()) << "\n";
-		}
-		catch (...) {
-			std::cerr << "Unknown exception while iterating directory.\n";
+			catch (std::exception const& e) {
+				UNREFERENCED_PARAMETER(e);
+				//std::cerr << "Exception while iterating directory." + std::string(e.what()) << "\n";
+			}
+			catch (...) {
+				std::cerr << "Unknown exception while iterating directory.\n";
+			}
 		}
 	}
-
+	catch (std::exception const& e) {
+		UNREFERENCED_PARAMETER(e);
+		std::cerr << "Exception while iterating directory." + std::string(e.what()) << "\n";
+		return 1;
+	}
 	while (numThreads)
 	{
 		Sleep(100);
