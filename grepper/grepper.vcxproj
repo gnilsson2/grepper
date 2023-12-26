@@ -216,7 +216,8 @@
       </Command>
     </CustomBuildStep>
     <PostBuildEvent>
-      <Command>copy /Y $(TargetPath) "C:\Users\gnils\Documents\_MyProj\My LV Projects 2021\find all vi references\"</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
