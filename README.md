@@ -1,6 +1,7 @@
 #### A Windows "find in files", somewhat like grep.  
-* Allways reqursive (like grep -r)  
-* Allways ingore case (like grep -i)  
+* Only outputs matching files, (like grep -l)
+* Allways reqursive, (like grep -r)  
+* Allways ingore case, (like grep -i)  
 * Searches in parallel, so quite fast, but can heavely load your cpu, if you search in like C:\  
   
 ```
