@@ -6,6 +6,7 @@
 #include <list>
 #include <windows.h>
 #include <mutex>
+//#include <future>
 
 using namespace std::filesystem;
 
@@ -24,6 +25,115 @@ atomic_ullong numThreads = 0;
 atomic<bool> threadStarted{ false };
 
 mutex cout_mutex;
+
+bool search(char*& c, long long size, HANDLE hAbandon)
+{
+	char* end = c + size;
+
+	while (c < end)
+	{
+		if (WaitForSingleObject(hAbandon, 0) == WAIT_OBJECT_0) return false;
+		if (tolower(*c++) == firstCharToSearch)
+		{
+			size_t i = 1;
+			for (; i < stringToSearch.length(); i++)
+			{
+				if (WaitForSingleObject(hAbandon, 0) == WAIT_OBJECT_0) return false;
+				if (c >= end) break;
+				if (tolower(*c++) != stringToSearch[i]) break;
+			}
+
+			if (i == stringToSearch.length())
+			{
+				return true;
+			}
+		}
+	};
+	return false;
+}
+typedef struct MyData {
+	char* c;
+	long long size;
+	HANDLE abandon_event;
+} MYDATA, * PMYDATA;
+
+DWORD WINAPI SearchOnThread(LPVOID lpParam)
+{
+	PMYDATA pData = (PMYDATA)lpParam;
+	return search(pData->c, pData->size,pData->abandon_event);
+}
+
+bool threaded_search(char* c, long long size)
+{
+#define MAX_THREADS 16
+	PMYDATA pDataArray[MAX_THREADS];
+	HANDLE  hThreadArray[MAX_THREADS];
+	HANDLE  abandon_events[MAX_THREADS];
+
+	long long tsize = size / MAX_THREADS;
+	for (size_t i = 0; i < MAX_THREADS; i++)
+	{
+		pDataArray[i] = (PMYDATA)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(MYDATA));		
+		if (pDataArray[i] == NULL) ExitProcess(2);
+		abandon_events[i] = CreateEvent(NULL, FALSE, FALSE, NULL);
+		if (abandon_events[i] == NULL) ExitProcess(3);
+
+		pDataArray[i]->c = c;
+		pDataArray[i]->size = tsize + 2 * stringToSearch.length(); // Overlapp to catch on boundary.
+		if (i == MAX_THREADS - 1) pDataArray[i]->size = tsize;     // But not the last one.
+		pDataArray[i]->abandon_event = abandon_events[i];
+
+		hThreadArray[i] = CreateThread(
+			NULL,                   // default security attributes
+			0,                      // use default stack size  
+			SearchOnThread,         // thread function name
+			pDataArray[i],          // argument to thread function 
+			0,                      // use default creation flags 
+			0);						// no need for the thread identifier 
+
+		if (hThreadArray[i] == NULL) ExitProcess(3);
+
+		c += tsize;
+	}
+
+	DWORD dwEvent = WaitForMultipleObjects(
+		MAX_THREADS,      // number of objects in array
+		hThreadArray,     // array of objects
+		FALSE,			  // wait for all object
+		INFINITE);        // forever wait
+
+	DWORD   dwThreadExitCodeArray[MAX_THREADS];
+
+	bool found = false;
+	for (size_t i = 0; i < MAX_THREADS; i++)
+	{
+		DWORD ecode;
+		GetExitCodeThread(hThreadArray[i], &ecode);
+		//if (ecode == STILL_ACTIVE) TerminateThread(hThreadArray[i], 0); //NO NO 
+		SetEvent(abandon_events[i]);
+		dwThreadExitCodeArray[i] = ecode;
+		//cerr << "\n" << ecode << "\n";
+		if (ecode==true) found = true;
+	}
+	WaitForMultipleObjects(
+		MAX_THREADS,      // number of objects in array
+		hThreadArray,     // array of objects
+		TRUE,			  // wait for all object
+		INFINITE);        // forever wait
+
+	return found;
+}
+//bool parallel_sum(char* c, long long size)
+//{
+//	long long tsize = size / 16;
+//
+//	for (size_t i = 0; i < 16; i++)
+//	{
+//		std::future<bool> f2 = std::async(std::launch::async, parallel_sum, c, tsize);
+//	}
+//	//return sum + handle.get();
+//	return false;
+//}
 
 DWORD WINAPI process(LPVOID lpParam)
 {
@@ -70,32 +180,27 @@ DWORD WINAPI process(LPVOID lpParam)
 		return 1;
 	}
 
-	char* c = (char*)map;
 	long long size=0;
 	GetFileSizeEx(hFile,(PLARGE_INTEGER) & size);
-	char* end = c + size;
-	while (c < end)
+	char* c = (char*)map;
+	bool found = false;
+	bool pfound = false;
+	if (size > 10*1024*1024) //100MByte
+		pfound = threaded_search(c, size);
+	else
+		found = search(c, size,0);
+
+	if (found || pfound)
 	{
-		if (tolower(*c++) == firstCharToSearch)
-		{
-			size_t i = 1;
-			for (; i < stringToSearch.length(); i++)
-			{
-				if (c >= end) break;
-				if (tolower(*c++) != stringToSearch[i]) break;
-			}
+		count_found++;
+		wstring ws((LPCWSTR)lpParam);
+		std::lock_guard<std::mutex> lock(cout_mutex);
+#ifdef _DEBUG
+		cout << pfound << " ";
+#endif
+		cout << string(ws.begin(), ws.end()) << "\n";
+	}
 
-			if (i == stringToSearch.length())
-			{
-				count_found++;
-				wstring ws((LPCWSTR)lpParam);
-				std::lock_guard<std::mutex> lock(cout_mutex);
-				cout << string(ws.begin(), ws.end()) << "\n";
-				break;
-			}
-		}
-
-	};
 	UnmapViewOfFile(map);
 	CloseHandle(fileMap);
 	CloseHandle(hFile);
@@ -356,4 +461,10 @@ int main(int argc, char* argv[])
 	if (verbose) std::cout << "Searched in " << count_files << " files\n";
 	if (verbose) std::cout << "Unable to read " << bad_files << " files\n";
 
+#ifdef _DEBUG
+	ULONG64 CycleTime;
+
+	QueryProcessCycleTime(GetCurrentProcess(), &CycleTime);
+	cout << "Giga Cpu cycles " << CycleTime/1000.0/1000/1000 << " \n";
+#endif
 }
