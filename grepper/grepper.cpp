@@ -24,6 +24,29 @@ atomic_ullong numThreads = 0;
 atomic<bool> threadStarted{ false };
 
 mutex cout_mutex;
+bool search(char*& c, long long size)
+{
+	char* end = c + size;
+
+	while (c < end)
+	{
+		if (tolower(*c++) == firstCharToSearch)
+		{
+			size_t i = 1;
+			for (; i < stringToSearch.length(); i++)
+			{
+				if (c >= end) break;
+				if (tolower(*c++) != stringToSearch[i]) break;
+			}
+
+			if (i == stringToSearch.length())
+			{
+				return true;
+			}
+		}
+	};
+	return false;
+}
 
 DWORD WINAPI process(LPVOID lpParam)
 {
@@ -70,32 +93,45 @@ DWORD WINAPI process(LPVOID lpParam)
 		return 1;
 	}
 
-	char* c = (char*)map;
 	long long size=0;
 	GetFileSizeEx(hFile,(PLARGE_INTEGER) & size);
-	char* end = c + size;
-	while (c < end)
+	//char* c = (char*)map;
+	//char* end = c + size;
+	//while (c < end)
+	//{
+	//	if (tolower(*c++) == firstCharToSearch)
+	//	{
+	//		size_t i = 1;
+	//		for (; i < stringToSearch.length(); i++)
+	//		{
+	//			if (c >= end) break;
+	//			if (tolower(*c++) != stringToSearch[i]) break;
+	//		}
+
+	//		if (i == stringToSearch.length())
+	//		{
+	//			count_found++;
+	//			wstring ws((LPCWSTR)lpParam);
+	//			std::lock_guard<std::mutex> lock(cout_mutex);
+	//			cout << string(ws.begin(), ws.end()) << "\n";
+	//			break;
+	//		}
+	//	}
+
+	//};
+	char* c = (char*)map;
+	bool found = false;
+	found = search(c, size);
+
+	if (found)
 	{
-		if (tolower(*c++) == firstCharToSearch)
-		{
-			size_t i = 1;
-			for (; i < stringToSearch.length(); i++)
-			{
-				if (c >= end) break;
-				if (tolower(*c++) != stringToSearch[i]) break;
-			}
+		count_found++;
+		wstring ws((LPCWSTR)lpParam);
+		std::lock_guard<std::mutex> lock(cout_mutex);
+		cout << string(ws.begin(), ws.end()) << "\n";
+	}
 
-			if (i == stringToSearch.length())
-			{
-				count_found++;
-				wstring ws((LPCWSTR)lpParam);
-				std::lock_guard<std::mutex> lock(cout_mutex);
-				cout << string(ws.begin(), ws.end()) << "\n";
-				break;
-			}
-		}
 
-	};
 	UnmapViewOfFile(map);
 	CloseHandle(fileMap);
 	CloseHandle(hFile);
@@ -356,4 +392,10 @@ int main(int argc, char* argv[])
 	if (verbose) std::cout << "Searched in " << count_files << " files\n";
 	if (verbose) std::cout << "Unable to read " << bad_files << " files\n";
 
+#ifdef _DEBUG
+	ULONG64 CycleTime;
+
+	QueryProcessCycleTime(GetCurrentProcess(), &CycleTime);
+	cout << "Giga Cpu cycles " << CycleTime / 1000.0 / 1000 / 1000 << " \n";
+#endif
 }
