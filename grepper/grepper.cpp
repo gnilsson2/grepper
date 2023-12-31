@@ -18,28 +18,26 @@ int bad_files = 0;
 
 list<wstring> excludedDirectories;
 list<wstring> includedFiles;
-int firstCharToSearch;
-wstring stringToSearch;
+char firstCharToSearch;
+string stringToSearch;
 
 atomic_ullong numThreads = 0;
 atomic<bool> threadStarted{ false };
 
 mutex cout_mutex;
 
-bool search(char*& c, long long size, HANDLE hAbandon)
+bool search(char*& c, long long size, atomic<bool>* found)
 {
 	char* end = c + size;
 
 	while (c < end)
 	{
-		if (WaitForSingleObject(hAbandon, 0) == WAIT_OBJECT_0) return false; // bad performance
+		if (*found) return false;
 		if (tolower(*c++) == firstCharToSearch)
 		{
 			size_t i = 1;
 			for (; i < stringToSearch.length(); i++)
 			{
-				if (WaitForSingleObject(hAbandon, 0) == WAIT_OBJECT_0) return false;
-				if (c >= end) break;
 				if (tolower(*c++) != stringToSearch[i]) break;
 			}
 
@@ -54,13 +52,13 @@ bool search(char*& c, long long size, HANDLE hAbandon)
 typedef struct MyData {
 	char* c;
 	long long size;
-	HANDLE abandon_event;
+	atomic<bool>* found;
 } MYDATA, * PMYDATA;
 
 DWORD WINAPI SearchOnThread(LPVOID lpParam)
 {
 	PMYDATA pData = (PMYDATA)lpParam;
-	return search(pData->c, pData->size,pData->abandon_event);
+	return search(pData->c, pData->size,pData->found);
 }
 
 bool threaded_search(char* c, long long size)
@@ -68,20 +66,18 @@ bool threaded_search(char* c, long long size)
 #define MAX_THREADS 16
 	PMYDATA pDataArray[MAX_THREADS];
 	HANDLE  hThreadArray[MAX_THREADS];
-	HANDLE  abandon_events[MAX_THREADS];
+	atomic<bool> found{ false };
 
 	long long tsize = size / MAX_THREADS;
 	for (size_t i = 0; i < MAX_THREADS; i++)
 	{
 		pDataArray[i] = (PMYDATA)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(MYDATA));		
 		if (pDataArray[i] == NULL) ExitProcess(2);
-		abandon_events[i] = CreateEvent(NULL, FALSE, FALSE, NULL);
-		if (abandon_events[i] == NULL) ExitProcess(3);
 
 		pDataArray[i]->c = c;
-		pDataArray[i]->size = tsize + 2 * stringToSearch.length(); // Overlapp to catch on boundary.
-		if (i == MAX_THREADS - 1) pDataArray[i]->size = tsize;     // But not the last one.
-		pDataArray[i]->abandon_event = abandon_events[i];
+		pDataArray[i]->size = tsize + stringToSearch.length(); // Overlapp to catch on boundary.
+		if (i == MAX_THREADS - 1) pDataArray[i]->size = tsize - stringToSearch.length() +1;     // But not the last one.
+		pDataArray[i]->found = &found;
 
 		hThreadArray[i] = CreateThread(
 			NULL,                   // default security attributes
@@ -96,25 +92,6 @@ bool threaded_search(char* c, long long size)
 		c += tsize;
 	}
 
-	DWORD dwEvent = WaitForMultipleObjects(
-		MAX_THREADS,      // number of objects in array
-		hThreadArray,     // array of objects
-		FALSE,			  // wait for all object
-		INFINITE);        // forever wait
-
-	DWORD   dwThreadExitCodeArray[MAX_THREADS];
-
-	bool found = false;
-	for (size_t i = 0; i < MAX_THREADS; i++)
-	{
-		DWORD ecode;
-		GetExitCodeThread(hThreadArray[i], &ecode);
-		//if (ecode == STILL_ACTIVE) TerminateThread(hThreadArray[i], 0); //NO NO 
-		SetEvent(abandon_events[i]);
-		dwThreadExitCodeArray[i] = ecode;
-		//cerr << "\n" << ecode << "\n";
-		if (ecode==true) found = true;
-	}
 	WaitForMultipleObjects(
 		MAX_THREADS,      // number of objects in array
 		hThreadArray,     // array of objects
@@ -123,17 +100,6 @@ bool threaded_search(char* c, long long size)
 
 	return found;
 }
-//bool parallel_sum(char* c, long long size)
-//{
-//	long long tsize = size / 16;
-//
-//	for (size_t i = 0; i < 16; i++)
-//	{
-//		std::future<bool> f2 = std::async(std::launch::async, parallel_sum, c, tsize);
-//	}
-//	//return sum + handle.get();
-//	return false;
-//}
 
 DWORD WINAPI process(LPVOID lpParam)
 {
@@ -183,12 +149,12 @@ DWORD WINAPI process(LPVOID lpParam)
 	long long size=0;
 	GetFileSizeEx(hFile,(PLARGE_INTEGER) & size);
 	char* c = (char*)map;
-	bool found = false;
+	atomic<bool> found = false;
 	bool pfound = false;
-	if (size > 10*1024*1024) //100MByte
+	if (size > 100*1024*1024) //100MByte
 		pfound = threaded_search(c, size);
 	else
-		found = search(c, size,0);
+		found = search(c, size, &found);
 
 	if (found || pfound)
 	{
@@ -334,7 +300,7 @@ int main(int argc, char* argv[])
 
 		if (!p.starts_with('-') && !p.starts_with('/') && stringToSearch.empty())
 		{
-			stringToSearch = wstring(p.begin(), p.end());
+			stringToSearch = string(p.begin(), p.end());
 			continue;
 		}
 
@@ -364,7 +330,7 @@ int main(int argc, char* argv[])
 	}
 
 	if (verbose) std::wcout << "Search in " << pathToSearch.wstring() << "\n";
-	if (verbose) std::wcout << "Search for " << stringToSearch << "\n";
+	if (verbose) std::cout << "Search for " << stringToSearch << "\n";
 
 	if (verbose) for (wstring e : excludedDirectories) wcout << "Excluding " << e << "\n";
 	if (verbose) for (wstring e : includedFiles) wcout << "Including " << e << "\n";
@@ -461,10 +427,22 @@ int main(int argc, char* argv[])
 	if (verbose) std::cout << "Searched in " << count_files << " files\n";
 	if (verbose) std::cout << "Unable to read " << bad_files << " files\n";
 
-#ifdef _DEBUG
-	ULONG64 CycleTime;
+	if (verbose)
+	{
+		cerr.precision(3);
+		cerr << "\n";
+		__int64 cre, exit, kern, user;
+		GetProcessTimes(GetCurrentProcess(), (LPFILETIME)&cre, (LPFILETIME)&exit, (LPFILETIME)&kern, (LPFILETIME)&user);
+		__int64 now;
+		SYSTEMTIME systime;
+		GetSystemTime(&systime);
+		SystemTimeToFileTime(&systime, (LPFILETIME)&now);
+		cerr << "real " << fixed << (now - cre) * 100e-9 << " \n";
+		cerr << "user " << fixed << user * 100e-9 << " \n";
+		cerr << "sys  " << fixed << kern * 100e-9 << " \n";
 
-	QueryProcessCycleTime(GetCurrentProcess(), &CycleTime);
-	cout << "Giga Cpu cycles " << CycleTime/1000.0/1000/1000 << " \n";
-#endif
+		ULONG64 CycleTime;
+		QueryProcessCycleTime(GetCurrentProcess(), &CycleTime);
+		cerr << "Giga Cpu cycles " << CycleTime * 1e-9 << " \n";
+	}
 }
