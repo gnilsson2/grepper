@@ -17,8 +17,8 @@ int bad_files = 0;
 
 list<wstring> excludedDirectories;
 list<wstring> includedFiles;
-int firstCharToSearch;
-wstring stringToSearch;
+char firstCharToSearch;
+string stringToSearch;
 
 atomic_ullong numThreads = 0;
 atomic<bool> threadStarted{ false };
@@ -35,7 +35,6 @@ bool search(char*& c, long long size)
 			size_t i = 1;
 			for (; i < stringToSearch.length(); i++)
 			{
-				if (c >= end) break;
 				if (tolower(*c++) != stringToSearch[i]) break;
 			}
 
@@ -95,33 +94,9 @@ DWORD WINAPI process(LPVOID lpParam)
 
 	long long size=0;
 	GetFileSizeEx(hFile,(PLARGE_INTEGER) & size);
-	//char* c = (char*)map;
-	//char* end = c + size;
-	//while (c < end)
-	//{
-	//	if (tolower(*c++) == firstCharToSearch)
-	//	{
-	//		size_t i = 1;
-	//		for (; i < stringToSearch.length(); i++)
-	//		{
-	//			if (c >= end) break;
-	//			if (tolower(*c++) != stringToSearch[i]) break;
-	//		}
 
-	//		if (i == stringToSearch.length())
-	//		{
-	//			count_found++;
-	//			wstring ws((LPCWSTR)lpParam);
-	//			std::lock_guard<std::mutex> lock(cout_mutex);
-	//			cout << string(ws.begin(), ws.end()) << "\n";
-	//			break;
-	//		}
-	//	}
-
-	//};
 	char* c = (char*)map;
-	bool found = false;
-	found = search(c, size);
+	bool found = search(c, size-stringToSearch.length()+1);
 
 	if (found)
 	{
@@ -265,7 +240,7 @@ int main(int argc, char* argv[])
 
 		if (!p.starts_with('-') && !p.starts_with('/') && stringToSearch.empty())
 		{
-			stringToSearch = wstring(p.begin(), p.end());
+			stringToSearch = string(p.begin(), p.end());
 			continue;
 		}
 
@@ -295,7 +270,7 @@ int main(int argc, char* argv[])
 	}
 
 	if (verbose) std::wcout << "Search in " << pathToSearch.wstring() << "\n";
-	if (verbose) std::wcout << "Search for " << stringToSearch << "\n";
+	if (verbose) std::cout << "Search for " << stringToSearch << "\n";
 
 	if (verbose) for (wstring e : excludedDirectories) wcout << "Excluding " << e << "\n";
 	if (verbose) for (wstring e : includedFiles) wcout << "Including " << e << "\n";
@@ -392,10 +367,22 @@ int main(int argc, char* argv[])
 	if (verbose) std::cout << "Searched in " << count_files << " files\n";
 	if (verbose) std::cout << "Unable to read " << bad_files << " files\n";
 
-#ifdef _DEBUG
-	ULONG64 CycleTime;
+	if (verbose)
+	{
+		cerr.precision(3);
+		cerr << "\n";
+		__int64 cre, exit, kern, user;
+		GetProcessTimes(GetCurrentProcess(), (LPFILETIME)& cre, (LPFILETIME)&exit, (LPFILETIME)&kern, (LPFILETIME)&user);
+		__int64 now;
+		SYSTEMTIME systime;
+		GetSystemTime(&systime);
+		SystemTimeToFileTime(&systime, (LPFILETIME)&now);
+		cerr << "real " << fixed << (now - cre) * 100e-9 << " \n";
+		cerr << "user " << fixed << user * 100e-9 << " \n";
+		cerr << "sys  " << fixed << kern * 100e-9 << " \n";
 
-	QueryProcessCycleTime(GetCurrentProcess(), &CycleTime);
-	cout << "Giga Cpu cycles " << CycleTime / 1000.0 / 1000 / 1000 << " \n";
-#endif
+		ULONG64 CycleTime;
+		QueryProcessCycleTime(GetCurrentProcess(), &CycleTime);
+		cerr << "Giga Cpu cycles " << CycleTime * 1e-9 << " \n";
+	}
 }
