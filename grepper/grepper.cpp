@@ -32,7 +32,7 @@ bool search(char*& c, long long size, HANDLE hAbandon)
 
 	while (c < end)
 	{
-		if (WaitForSingleObject(hAbandon, 0) == WAIT_OBJECT_0) return false;
+		if (WaitForSingleObject(hAbandon, 0) == WAIT_OBJECT_0) return false; // bad performance
 		if (tolower(*c++) == firstCharToSearch)
 		{
 			size_t i = 1;
