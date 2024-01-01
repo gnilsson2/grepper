@@ -148,7 +148,7 @@ DWORD WINAPI process(LPVOID lpParam)
 	if (size > 100*1024LL*1024LL) //100MByte
 		pfound = threaded_search(c, size);
 	else
-		found = search(c, size, &found);
+		found = search(c, size - stringToSearch.length() + 1, &found);
 
 	if (found || pfound)
 	{
