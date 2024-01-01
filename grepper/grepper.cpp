@@ -277,12 +277,10 @@ int main(int argc, char* argv[])
 	std::transform(stringToSearch.begin(), stringToSearch.end(), stringToSearch.begin(),
 		[](unsigned char c) { return std::tolower(c); });
 
-	int count = 0; //only for breakpoint condition
 	try
 	{
 		for (const directory_entry& dir_entry : recursive_directory_iterator(pathToSearch, directory_options::skip_permission_denied))
 		{
-			count++;
 			Sleep(0);
 			try {
 				if (!dir_entry.exists()) continue;
@@ -368,9 +366,9 @@ int main(int argc, char* argv[])
 	{
 		cerr.precision(3);
 		cerr << "\n";
-		__int64 cre, exit, kern, user;
+		__int64 cre = 0, exit = 0, kern = 0, user = 0;
 		GetProcessTimes(GetCurrentProcess(), (LPFILETIME)& cre, (LPFILETIME)&exit, (LPFILETIME)&kern, (LPFILETIME)&user);
-		__int64 now;
+		__int64 now = 0;
 		SYSTEMTIME systime;
 		GetSystemTime(&systime);
 		SystemTimeToFileTime(&systime, (LPFILETIME)&now);
