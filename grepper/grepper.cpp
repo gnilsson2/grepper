@@ -63,32 +63,27 @@ DWORD WINAPI SearchOnThread(LPVOID lpParam)
 bool threaded_search(char* c, long long size)
 {
 #define MAX_THREADS 16
-	PMYDATA pDataArray[MAX_THREADS];
+	MYDATA DataArray[MAX_THREADS];
 	HANDLE  hThreadArray[MAX_THREADS];
 	atomic<bool> found{ false };
 
 	long long tsize = size / MAX_THREADS;
-	for (size_t i = 0; i < MAX_THREADS; i++)
+	for (size_t i = 0; i < MAX_THREADS; i++, c += tsize)
 	{
-		pDataArray[i] = (PMYDATA)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(MYDATA));		
-		if (pDataArray[i] == NULL) ExitProcess(2);
-
-		pDataArray[i]->c = c;
-		pDataArray[i]->size = tsize + stringToSearch.length(); // Overlapp to catch on boundary.
-		if (i == MAX_THREADS - 1) pDataArray[i]->size = tsize - stringToSearch.length() +1;     // But not the last one.
-		pDataArray[i]->found = &found;
+		DataArray[i].c = c;
+		DataArray[i].size = tsize + stringToSearch.length(); // Overlapp to catch on boundary.
+		if (i == MAX_THREADS - 1) DataArray[i].size = tsize - stringToSearch.length() +1;     // But not the last one.
+		DataArray[i].found = &found;
 
 		hThreadArray[i] = CreateThread(
 			NULL,                   // default security attributes
 			0,                      // use default stack size  
 			SearchOnThread,         // thread function name
-			pDataArray[i],          // argument to thread function 
+			&DataArray[i],          // argument to thread function 
 			0,                      // use default creation flags 
 			0);						// no need for the thread identifier 
 
 		if (hThreadArray[i] == NULL) ExitProcess(3);
-
-		c += tsize;
 	}
 
 	WaitForMultipleObjects(
@@ -150,7 +145,7 @@ DWORD WINAPI process(LPVOID lpParam)
 	char* c = (char*)map;
 	atomic<bool> found = false;
 	bool pfound = false;
-	if (size > 100*1024*1024) //100MByte
+	if (size > 100*1024LL*1024LL) //100MByte
 		pfound = threaded_search(c, size);
 	else
 		found = search(c, size, &found);
@@ -429,9 +424,9 @@ int main(int argc, char* argv[])
 	{
 		cerr.precision(3);
 		cerr << "\n";
-		__int64 cre, exit, kern, user;
+		__int64 cre = 0, exit = 0, kern = 0, user = 0;
 		GetProcessTimes(GetCurrentProcess(), (LPFILETIME)&cre, (LPFILETIME)&exit, (LPFILETIME)&kern, (LPFILETIME)&user);
-		__int64 now;
+		__int64 now = 0;
 		SYSTEMTIME systime;
 		GetSystemTime(&systime);
 		SystemTimeToFileTime(&systime, (LPFILETIME)&now);
