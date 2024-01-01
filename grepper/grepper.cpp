@@ -139,14 +139,13 @@ void visit(path p)
 
 	threadStarted = false;
 	// Create the thread to begin execution on its own.
-	DWORD dwThreadId;
 	HANDLE hThread = CreateThread(
 		NULL,                   // default security attributes
 		0,                      // use default stack size  
 		process,       // thread function name
 		pData,          // argument to thread function 
 		0,                      // use default creation flags 
-		&dwThreadId);   // returns the thread identifier 
+		0);   // returns the thread identifier 
 
 	// Check the return value for success.
 	// If CreateThread fails, terminate execution. 
