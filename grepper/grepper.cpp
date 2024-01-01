@@ -18,7 +18,6 @@ int bad_files = 0;
 
 list<wstring> excludedDirectories;
 list<wstring> includedFiles;
-char firstCharToSearch;
 string stringToSearch;
 
 atomic_ullong numThreads = 0;
@@ -33,7 +32,7 @@ bool search(char*& c, long long size, atomic<bool>* found)
 	while (c < end)
 	{
 		if (*found) return false;
-		if (tolower(*c++) == firstCharToSearch)
+		if (tolower(*c++) == stringToSearch[0])
 		{
 			size_t i = 1;
 			for (; i < stringToSearch.length(); i++)
@@ -338,7 +337,6 @@ int main(int argc, char* argv[])
 	std::transform(stringToSearch.begin(), stringToSearch.end(), stringToSearch.begin(),
 		[](unsigned char c) { return std::tolower(c); });
 
-	firstCharToSearch = stringToSearch[0];
 
 	int count = 0; //only for breakpoint condition
 	try
